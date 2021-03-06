@@ -31,13 +31,24 @@ namespace ClumsyCanvasWrapper
 
         protected void WriteString(byte[] array, OperationInfo info, string str)
         {
-            byte[] strArray = Encoding.UTF8.GetBytes(str);
+            if (str == null)
+            {
+                WriteShort(array, info, -1);
+            }
+            else if (str.Length > 0)
+            {
+                byte[] strArray = Encoding.UTF8.GetBytes(str);
 
-            WriteShort(array, info, (short)strArray.Length);
+                WriteShort(array, info, (short)strArray.Length);
 
-            Array.Copy(strArray, 0, array, info.index, strArray.Length);
+                Array.Copy(strArray, 0, array, info.index, strArray.Length);
 
-            info.index += strArray.Length;
+                info.index += strArray.Length;
+            }
+            else
+            {
+                WriteShort(array, info, 0);
+            }
         }
 
         protected void WriteByte(byte[] array, OperationInfo info, byte bt)
@@ -64,17 +75,18 @@ namespace ClumsyCanvasWrapper
 
         /// <summary>
         /// Строки, чьи символы могут занимать больше 1 байта
+        /// Типа кириллицы
         /// </summary>
         /// <param name="str"></param>
         /// <returns></returns>
         protected int GetUTFStringLength(string str)
         {
-            return 2 + Encoding.UTF8.GetBytes(str).Length;
+            return 2 + str == null ? 0 : Encoding.UTF8.GetBytes(str).Length;
         }
 
         protected int GetStringLength(string str)
         {
-            return 2 + str.Length;
+            return 2 + str == null ? 0 : str.Length;
         }
 
         /// <summary>

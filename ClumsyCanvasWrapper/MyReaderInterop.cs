@@ -16,6 +16,7 @@ namespace ClumsyCanvasWrapper
             typeof(CreateCanvasOperation),
             typeof(SetObjectOperation),
             typeof(SetElementOperation),
+            typeof(SetStringOperation),
             typeof(RemoveObjectOperation),
             typeof(FillOperation),
             typeof(GlobalCompositeOperation),
@@ -48,9 +49,9 @@ namespace ClumsyCanvasWrapper
             await js.InvokeVoidAsync("initDrawReader");
         }
 
-        public async Task<string> GetSingleImageData()
+        public async Task<string> GetSingleImageData(int x, int y)
         {
-            return await js.InvokeAsync<string>("getSingleImageData");
+            return await js.InvokeAsync<string>("getSingleImageData", x, y);
         }
 
         public async Task AttachCanvas(ElementReference reference, short index)
@@ -93,7 +94,7 @@ namespace ClumsyCanvasWrapper
                 Console.WriteLine($"Exception {e}");
             }
 
-            Console.WriteLine($"c# process {array.Length}");
+            //Console.WriteLine($"c# process {array.Length}");
 
             jsUnmarsh.InvokeUnmarshalled<byte[], object>("processDrawArray", array);
         }

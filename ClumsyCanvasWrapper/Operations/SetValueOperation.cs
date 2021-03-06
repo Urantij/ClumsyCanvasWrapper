@@ -22,24 +22,46 @@ namespace ClumsyCanvasWrapper.Operations
             SetValueOperationEnum.filter,
         };
 
-        private byte index;
+        private byte option;
+        private byte dictIndex;
         private string value;
+        private short objIndex;
 
         public SetValueOperation(SetValueOperationEnum key, string value)
         {
-            index = (byte)enumArray.IndexOf(key);
+            option = 0;
+            dictIndex = (byte)enumArray.IndexOf(key);
             this.value = value;
+        }
+
+        public SetValueOperation(SetValueOperationEnum key, short objIndex)
+        {
+            option = 1;
+            dictIndex = (byte)enumArray.IndexOf(key);
+            this.objIndex = objIndex;
         }
 
         public override void Process(byte[] array, OperationInfo info)
         {
-            WriteByte(array, info, index);
-            WriteString(array, info, value);
+            WriteByte(array, info, option);
+            WriteByte(array, info, dictIndex);
+
+            if (option == 0)
+            {
+                WriteString(array, info, value);
+            }
+            else
+            {
+                WriteShort(array, info, objIndex);
+            }
         }
 
         public override int GetLength()
         {
-            return 1 + GetStringLength(value);
+            if (option == 0)
+                return 2 + GetStringLength(value);
+            else
+                return 4;
         }
     }
 }
