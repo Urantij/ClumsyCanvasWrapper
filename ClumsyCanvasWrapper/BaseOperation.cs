@@ -81,12 +81,12 @@ namespace ClumsyCanvasWrapper
         /// <returns></returns>
         protected int GetUTFStringLength(string str)
         {
-            return 2 + str == null ? 0 : Encoding.UTF8.GetBytes(str).Length;
+            return 2 + (str == null ? 0 : Encoding.UTF8.GetBytes(str).Length);
         }
 
         protected int GetStringLength(string str)
         {
-            return 2 + str == null ? 0 : str.Length;
+            return 2 + (str == null ? 0 : str.Length);
         }
 
         /// <summary>
