@@ -89,6 +89,14 @@ abstract class Operation {
         return result;
     }
 
+    protected readBool(array: Uint8Array, pInfo: ProcessInfo): boolean {
+
+        let result = array[pInfo.index];
+        pInfo.index++;
+
+        return result == 1;
+    }
+
     abstract process(array: Uint8Array, pInfo: ProcessInfo);
 }
 
@@ -298,28 +306,74 @@ class SetValueOperation extends Operation {
             "globalCompositeOperation",
             "fillStyle",
             "filter",
+
+            "imageSmoothingEnabled",
+            "imageSmoothingQuality",
         ];
 
     process(array: Uint8Array, pInfo: ProcessInfo) {
-
-        let option = this.readByte(array, pInfo);
 
         let dictIndex = this.readByte(array, pInfo);
         let field = SetValueOperation.dict[dictIndex];
 
         let value;
-        switch (option) {
 
-            case 0: {
-                value = this.readString(array, pInfo);
+        switch (dictIndex) {
+
+            case 0:
+            case 1:
+            case 2:
+                {
+                    let option = this.readByte(array, pInfo);
+
+                    switch (option) {
+
+                        case 0: {
+                            value = this.readString(array, pInfo);
+                            break;
+                        }
+                        case 1: {
+                            let objIndex = this.readShort(array, pInfo);
+                            value = pInfo.reader.getObject(objIndex);
+                            break;
+                        }
+                    }
+                    break;
+                }
+
+            case 3: {
+
+                value = this.readBool(array, pInfo);
                 break;
             }
-            case 1: {
-                let objIndex = this.readShort(array, pInfo);
-                value = pInfo.reader.getObject(objIndex);
+
+            case 4: {
+
+                let option = this.readByte(array, pInfo);
+                switch (option) {
+
+                    case 0: {
+
+                        value = "low";
+                        break;
+                    }
+
+                    case 1: {
+
+                        value = "medium";
+                        break;
+                    }
+
+                    case 2: {
+
+                        value = "high";
+                        break;
+                    }
+                }
                 break;
             }
         }
+
         
         pInfo.reader.canvas.ctx[field] = value;
     }
@@ -432,6 +486,33 @@ class RectOperation extends Operation {
     }
 }
 
+class SaveOperation extends Operation {
+
+    process(array: Uint8Array, pInfo: ProcessInfo) {
+
+        pInfo.reader.canvas.ctx.save();
+    }
+}
+
+class RestoreOperation extends Operation {
+
+    process(array: Uint8Array, pInfo: ProcessInfo) {
+
+        pInfo.reader.canvas.ctx.restore();
+    }
+}
+
+class TranslateOperation extends Operation {
+
+    process(array: Uint8Array, pInfo: ProcessInfo) {
+
+        let x = this.readShort(array, pInfo);
+        let y = this.readShort(array, pInfo);
+
+        pInfo.reader.canvas.ctx.translate(x, y);
+    }
+}
+
 class OpCodes {
 
     static dict: Operation[] = [
@@ -452,6 +533,9 @@ class OpCodes {
         new CreatePatternOperation(),
         new FillStyleOperation(),
         new RectOperation(),
+        new SaveOperation(),
+        new RestoreOperation(),
+        new TranslateOperation(),
     ]
 }
 

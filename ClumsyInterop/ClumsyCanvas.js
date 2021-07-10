@@ -15,26 +15,45 @@ class Operation {
         return result;
     }
     readShort(array, pInfo) {
-        //2 байта для определения длины строки. Грят, что этот способ не работает для отрицательных чисел, но че та ну
+        /*//2 байта для определения длины строки. Грят, что этот способ не работает для отрицательных чисел, но че та ну
         //а ещё порядок байтов другой.
         let result = array[pInfo.index + 1] << 8 | array[pInfo.index];
         pInfo.index += 2;
-        return result;
+
+        return result;*/
+        //https://stackoverflow.com/q/53328335
+        let value = (array[pInfo.index] << 8) | (array[pInfo.index + 1] & 0xff);
+        pInfo.index += 2;
+        let buffer = new ArrayBuffer(2);
+        let view = new DataView(buffer, 0, 2);
+        view.setInt16(0, value);
+        return view.getInt16(0, true);
     }
     readString(array, pInfo) {
         let length = this.readShort(array, pInfo);
-        //наверняка можно сделать итератор и не копировать строку, но мне плохо
-        let readArray = new Uint8Array(length);
-        for (let index = 0; index < length; index++) {
-            readArray[index] = array[index + pInfo.index];
+        if (length > 0) {
+            //наверняка можно сделать итератор и не копировать строку, но мне плохо
+            let readArray = new Uint8Array(length);
+            for (let index = 0; index < length; index++) {
+                readArray[index] = array[index + pInfo.index];
+            }
+            pInfo.index += length;
+            return pInfo.reader.textDecoder.decode(readArray);
         }
-        pInfo.index += length;
-        return pInfo.reader.textDecoder.decode(readArray);
+        else if (length == 0) {
+            return "";
+        }
+        return null;
     }
     readByte(array, pInfo) {
         let result = array[pInfo.index];
         pInfo.index++;
         return result;
+    }
+    readBool(array, pInfo) {
+        let result = array[pInfo.index];
+        pInfo.index++;
+        return result == 1;
     }
 }
 class CreateCanvasOperation extends Operation {
@@ -63,6 +82,13 @@ class SetElementOperation extends Operation {
         // @ts-ignore
         let obj = document.getElementById(elementId);
         pInfo.reader.setObject(index, obj);
+    }
+}
+class SetStringOperation extends Operation {
+    process(array, pInfo) {
+        let index = this.readShort(array, pInfo);
+        let value = this.readString(array, pInfo);
+        pInfo.reader.setObject(index, value);
     }
 }
 class RemoveObjectOperation extends Operation {
@@ -174,9 +200,51 @@ class ResizeCanvasOperation extends Operation {
 }
 class SetValueOperation extends Operation {
     process(array, pInfo) {
-        let index = this.readByte(array, pInfo);
-        let field = SetValueOperation.dict[index];
-        let value = this.readString(array, pInfo);
+        let dictIndex = this.readByte(array, pInfo);
+        let field = SetValueOperation.dict[dictIndex];
+        let value;
+        switch (dictIndex) {
+            case 0:
+            case 1:
+            case 2:
+                {
+                    let option = this.readByte(array, pInfo);
+                    switch (option) {
+                        case 0: {
+                            value = this.readString(array, pInfo);
+                            break;
+                        }
+                        case 1: {
+                            let objIndex = this.readShort(array, pInfo);
+                            value = pInfo.reader.getObject(objIndex);
+                            break;
+                        }
+                    }
+                    break;
+                }
+            case 3: {
+                value = this.readBool(array, pInfo);
+                break;
+            }
+            case 4: {
+                let option = this.readByte(array, pInfo);
+                switch (option) {
+                    case 0: {
+                        value = "low";
+                        break;
+                    }
+                    case 1: {
+                        value = "medium";
+                        break;
+                    }
+                    case 2: {
+                        value = "high";
+                        break;
+                    }
+                }
+                break;
+            }
+        }
         pInfo.reader.canvas.ctx[field] = value;
     }
 }
@@ -184,6 +252,8 @@ SetValueOperation.dict = [
     "globalCompositeOperation",
     "fillStyle",
     "filter",
+    "imageSmoothingEnabled",
+    "imageSmoothingQuality",
 ];
 class SetCustomValueOperation extends Operation {
     process(array, pInfo) {
@@ -242,6 +312,7 @@ class FillStyleOperation extends Operation {
             }
             case 2: {
                 //pattern
+                //actually just any object
                 let objIndex = this.readShort(array, pInfo);
                 let obj = pInfo.reader.getObject(objIndex);
                 pInfo.reader.canvas.ctx.fillStyle = obj;
@@ -261,12 +332,30 @@ class RectOperation extends Operation {
         pInfo.reader.canvas.ctx.rect(x, y, width, height);
     }
 }
+class SaveOperation extends Operation {
+    process(array, pInfo) {
+        pInfo.reader.canvas.ctx.save();
+    }
+}
+class RestoreOperation extends Operation {
+    process(array, pInfo) {
+        pInfo.reader.canvas.ctx.restore();
+    }
+}
+class TranslateOperation extends Operation {
+    process(array, pInfo) {
+        let x = this.readShort(array, pInfo);
+        let y = this.readShort(array, pInfo);
+        pInfo.reader.canvas.ctx.translate(x, y);
+    }
+}
 class OpCodes {
 }
 OpCodes.dict = [
     new CreateCanvasOperation(),
     new SetObjectOperation(),
     new SetElementOperation(),
+    new SetStringOperation(),
     new RemoveObjectOperation(),
     new FillOperation(),
     new GlobalCompositeOperation(),
@@ -280,6 +369,9 @@ OpCodes.dict = [
     new CreatePatternOperation(),
     new FillStyleOperation(),
     new RectOperation(),
+    new SaveOperation(),
+    new RestoreOperation(),
+    new TranslateOperation(),
 ];
 class MyReader {
     constructor() {
@@ -299,8 +391,8 @@ class MyReader {
     attachCanvas(canvas) {
         this.canvas = canvas;
     }
-    getSingleImageData() {
-        let imageData = this.canvas.ctx.getImageData(0, 0, 1, 1).data;
+    getSingleImageData(x, y) {
+        let imageData = this.canvas.ctx.getImageData(x, y, 1, 1).data;
         return imageData[0].toString() + " " + imageData[1].toString() + " " + imageData[2].toString();
     }
     processArray(array) {
@@ -341,9 +433,9 @@ function createCanvas(index) {
     let canvas = document.createElement("canvas");
     attachCanvas(canvas, index);
 }
-function getSingleImageData() {
+function getSingleImageData(x, y) {
     // @ts-ignore
     let reader = window[clumsyCanvasPrefix].myReader;
-    return reader.getSingleImageData();
+    return reader.getSingleImageData(x, y);
 }
 //# sourceMappingURL=ClumsyCanvas.js.map

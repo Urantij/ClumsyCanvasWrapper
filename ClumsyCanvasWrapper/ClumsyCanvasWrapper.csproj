@@ -10,7 +10,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="5.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="5.0.7" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="xcopy &quot;$(SolutionDir)ClumsyInterop\ClumsyCanvas.js&quot; &quot;$(ProjectDir)wwwroot&quot; /Y&#xD;&#xA;xcopy &quot;$(SolutionDir)ClumsyInterop\ClumsyCanvas.js.map&quot; &quot;$(ProjectDir)wwwroot&quot; /Y" />
+  </Target>
 
 </Project>

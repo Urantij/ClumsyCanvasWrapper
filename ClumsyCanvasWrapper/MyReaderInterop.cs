@@ -30,6 +30,9 @@ namespace ClumsyCanvasWrapper
             typeof(CreatePatternOperation),
             typeof(FillStyleOperation),
             typeof(RectOperation),
+            typeof(SaveOperation),
+            typeof(RestoreOperation),
+            typeof(TranslateOperation),
         };
     }
 

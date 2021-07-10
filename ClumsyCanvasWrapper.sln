@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.30804.86
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClumsyCanvasWrapper", "ClumsyCanvasWrapper\ClumsyCanvasWrapper.csproj", "{45DD7BF5-C141-46D3-BD67-4D8DAA40525C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E065A0CF-CA6A-4C68-9150-3B2B75883E3E} = {E065A0CF-CA6A-4C68-9150-3B2B75883E3E}
+	EndProjectSection
 EndProject
 Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "ClumsyInterop", "ClumsyInterop\ClumsyInterop.njsproj", "{E065A0CF-CA6A-4C68-9150-3B2B75883E3E}"
 EndProject

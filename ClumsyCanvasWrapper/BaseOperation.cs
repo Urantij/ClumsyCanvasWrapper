@@ -57,6 +57,12 @@ namespace ClumsyCanvasWrapper
             info.index++;
         }
 
+        protected void WriteBool(byte[] array, OperationInfo info, bool @bool)
+        {
+            array[info.index] = @bool ? (byte)1 : (byte)0;
+            info.index++;
+        }
+
         protected int GetPathLength(IEnumerable<string> path)
         {
             int length = 0;
